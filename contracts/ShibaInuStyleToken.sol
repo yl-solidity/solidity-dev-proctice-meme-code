@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
     // ---代币相关变量--
     uint256 public buyTax = 5; // 买入税率5%
     uint256 public sellTax = 5; // 卖出税率5%
-    uint256 public marketingWallet; // 营销钱包地址
+    address public marketingWallet; // 营销钱包地址
     address public lpWallet; // 用于添加流动性的钱包（可设置合约本身）
 
 
@@ -23,22 +23,21 @@ import "@openzeppelin/contracts/access/Ownable.sol";
     uint256 public maxWalletAmount; // 单地址最大持仓量
     mapping(address=>bool) public isExcludeFromTax; // 免税地址
     mapping (address=>bool) public isExcludeFromLimit; // 免限地址
-    mapping(address=>bool) public automateMarketMarkerPairs; // 免税地址
-    mapping (address=>bool) public isExcludeFromLimit; // 免限地址
+    mapping(address=>bool) public automatedMarketMakerPairs; // 免税地址
 
     // 事件
-    event SetAutomatedMarketMakerPair(address indexed pair, boll indexed value);
-    event SwapAndLiquify(address tokensSwapped, uint256 ethReceived, uint256 tokensIntoLiquidity);
+    event SetAutomatedMarketMakerPair(address indexed pair, bool indexed value);
+    event SwapAndLiquify(uint256 tokensSwapped, uint256 ethReceived, uint256 tokensIntoLiquidity);
 
     constructor(
         string memory name,
         string memory symbol,
-        uint256 initalSupply,
+        uint256 initialSupply,
         address _marketingWallet
     ) ERC20(name, symbol) Ownable(msg.sender) {
         marketingWallet = _marketingWallet;
 
-        uint256 totalSupply = initalSupply * 10 ** decimals();
+        uint256 totalSupply = initialSupply * 10 ** decimals();
         _mint(msg.sender, totalSupply);
 
         // 初始化限制，最大交易额 = 总供应量的1%,最大持仓=总供应量的2%
@@ -50,25 +49,27 @@ import "@openzeppelin/contracts/access/Ownable.sol";
         isExcludeFromTax[msg.sender] = true;
     }
 
-    // -----------代币税功能--------
-    function _transfer(address sender, address recipient, uint256 amount) internal override {
+    // -----------代币税功能--重写_update函数------
+    function _update(address sender, address recipient, uint256 amount) internal override {
         require(sender != address(0), "ERC20:transfer from the zero address");
         require(recipient != address(0), "ERC20:transfer from the zero address");
 
         // 处理交易限制，排除白名单
 
-        if(!isExcludeFromLimit[sender] && !isExcludeFromTax[sender]){
+        if(!isExcludeFromLimit[sender] && !isExcludeFromLimit[sender]){
             require(amount < maxTransactionAmount, "Transfer amount exceeds maxTransactionAmount");
-            if(automateMarketMarkerPairs[recipient] || automateMarketMarkerPairs[sender]){
+
+             // 如果是买卖操作（与 AMM 池交互），检查接收方的最终持仓
+            if(automatedMarketMakerPairs[recipient] || automatedMarketMakerPairs[sender]){
                 // 如果是买卖操作，检查持仓限制
-                require(balanceof(recipient) + amount <= maxWalletAmount, "Recipiet exceeds max walet amount");
+                require(balanceOf(recipient) + amount <= maxWalletAmount, "Recipiet exceeds max walet amount");
             }
         }
 
         // 计算税费，排除白名单
         uint256 taxAmount = 0;
         if(!isExcludeFromLimit[sender] && !isExcludeFromTax[recipient]){
-            if(automateMarketMarkerPairs[sender]){
+            if(automatedMarketMakerPairs[sender]){
                 // 买入，使用买入税
                 taxAmount = amount * buyTax / 100;
             } else {
@@ -78,13 +79,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
         }
 
         if(taxAmount > 0) {
-            // 税费转至营销钱包（简化处理，实际可拆分为LP和营销）
-            super._transfer(sender, marketingWallet, taxAmount);
-            amount = amount - taxAmount;
+            // 1. 先将税费部分转给营销钱包（通过父类的 _update 逻辑）
+            super._update(sender, marketingWallet, taxAmount);
+            // 2. 再转剩余部分给接收方
+            super._update(sender, recipient, amount - taxAmount);
+        } else {
+            // 无税，正常转账
+            super._update(sender, recipient, amount);
         }
-
-        // 执行转账操作
-        super._transfer(sender, recipient, amount);
     }
 
     // 设置税率
@@ -97,7 +99,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
     //设置AMM池地址（例如Uniswap Pair）
     function setAutomatedMarketMakerPair(address pair, bool value) external onlyOwner {
-        automateMarketMarkerPairs[pair] = value;
+        automatedMarketMakerPairs[pair] = value;
         emit SetAutomatedMarketMakerPair(pair, value);
     }
 
