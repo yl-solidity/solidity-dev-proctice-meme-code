@@ -1,7 +1,15 @@
 {
-  "name": "test",
+  "name": "solidity-dev-proctice-meme-code",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "solhint '**/*.sol'",
+    "lint:fix": "solhint contracts/*.sol --fix",
+    "format": "prettier --write \"contracts/*.sol\"",
+    "deploy:hardhat": "npx hardhat ignition deploy ignition/modules/ShibaInuStyleTokenModule.ts --network hardhat",
+    "deploy:sepolia": "npx hardhat ignition deploy ignition/modules/ShibaInuStyleTokenModule.ts --network sepolia"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.2",
