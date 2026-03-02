@@ -38,7 +38,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
         marketingWallet = _marketingWallet;
 
         uint256 totalSupply = initialSupply * 10 ** decimals();
-        _mint(msg.sender, totalSupply);
+        super._mint(msg.sender, totalSupply);
 
         // 初始化限制，最大交易额 = 总供应量的1%,最大持仓=总供应量的2%
         maxTransactionAmount = totalSupply * 1/100;
@@ -51,6 +51,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
     // -----------代币税功能--重写_update函数------
     function _update(address sender, address recipient, uint256 amount) internal override {
+
+         // 特殊处理：铸造 (sender 是零地址) 或 销毁 (recipient 是零地址)
+        // 这些操作应直接通过，不应用任何税费或限制逻辑
+        if (sender == address(0) || recipient == address(0)) {
+            super._update(sender, recipient, amount);
+            return;
+        }
         require(sender != address(0), "ERC20:transfer from the zero address");
         require(recipient != address(0), "ERC20:transfer from the zero address");
 
