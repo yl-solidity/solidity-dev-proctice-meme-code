@@ -4,14 +4,12 @@ pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title ShibaInuStyleToken
  * @dev 仿SHIB风格的Meme代币，包含交易税、流动性池集成和交易限制功能。
  */
  contract ShibaInuStyleToken is ERC20, Ownable {
-    using SafeMath for uint256;
 
     // ---代币相关变量--
     uint256 public buyTax = 5; // 买入税率5%
