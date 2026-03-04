@@ -8,6 +8,7 @@
     "lint:fix": "solhint contracts/*.sol --fix",
     "format": "prettier --write \"contracts/*.sol\"",
     "deploy:hardhat": "npx hardhat ignition deploy ignition/modules/ShibaInuStyleTokenModule.ts --network hardhat",
+    "deploy:local": "npx hardhat ignition deploy ignition/modules/ShibaInuStyleTokenModule.ts --network localhost",
     "deploy:sepolia": "npx hardhat ignition deploy ignition/modules/ShibaInuStyleTokenModule.ts --network sepolia"
   },
   "devDependencies": {
